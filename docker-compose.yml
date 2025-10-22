@@ -33,7 +33,7 @@ services:
       - ${PLUGINS_DIR:-./wp-content/plugins}:/var/www/html/wp-content/plugins
       - ${UPLOADS_DIR:-./wp-content/uploads}:/var/www/html/wp-content/uploads
     ports:
-      - "8000:80"
+      - "8080:80"
     restart: unless-stopped
     environment:
       WP_ENV: "local"
