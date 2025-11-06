@@ -1,47 +1,57 @@
 version: '2.4'
 
 services:
-  db:
-    container_name: "wp-mysql"
-    image: mariadb:10
-    healthcheck:
-      test: mysqladmin -uwp_user -pwp_pass ping -h 127.0.0.1
-    volumes:
-      - database:/var/lib/mysql
-      - ${PWD}/dump:/docker-entrypoint-initdb.d
-    restart: unless-stopped
-    environment: # the mysql user is 'root'
-      MYSQL_ROOT_PASSWORD: pass
-      MYSQL_DATABASE: wp_wordpress
-      MYSQL_USER: wp_user
-      MYSQL_PASSWORD: wp_pass
-
   wordpress:
+    # Use 'container_name' with caution as per Dokploy docs; they prefer auto-naming.
+    # I'll keep it for clarity, but you may want to remove it in production.
     container_name: "wp-site"
+    
+    # We depend on the external Dokploy database service being ready.
+    # The 'condition: service_healthy' check is no longer possible since 'db' is external.
+    # Dokploy handles the necessary wait logic when linking services.
+    # You might still need a custom wait-for-it script in your image if the connection fails frequently.
     depends_on:
-      db:
-        condition: service_healthy
+      # We assume the user creates a database service named 'wp-db-service' in Dokploy
+      # and links it to this application.
+      # This is often done via Dokploy's service linking UI, not directly in compose.
+      # I'm removing the health check dependency since 'db' is now external.
+      # If you need a strict dependency, you may need a separate wait script in your Dockerfile.
+      []
+
     image: fsg/wordpress
     build:
       context: .
       dockerfile: Dockerfile.website
       args:
         user_id: ${UID:-1000}
+        
+    # Volumes are still necessary for WordPress data persistence (themes, plugins, uploads)
     volumes:
       - wordpress:/var/www/html
       - ${THEMES_DIR:-./wp-content/themes}:/var/www/html/wp-content/themes
       - ${PLUGINS_DIR:-./wp-content/plugins}:/var/www/html/wp-content/plugins
       - ${UPLOADS_DIR:-./wp-content/uploads}:/var/www/html/wp-content/uploads
+      
     ports:
       - "8080:80"
+      
     restart: unless-stopped
+    
+    # CRITICAL: These environment variables must match the details of the MariaDB/MySQL
+    # service you provisioned via the Dokploy dashboard.
     environment:
       WP_ENV: "local"
-      WORDPRESS_DB_HOST: db:3306
+      
+      # *** UPDATE THIS ***
+      # Replace 'dokploy-db-host' with the actual internal hostname Dokploy assigns to your managed MariaDB service.
+      # This hostname is usually the name you give the database service in the Dokploy UI.
+      WORDPRESS_DB_HOST: dokploy-db-host:3306 
+      
+      # These credentials MUST match the ones you set in the Dokploy managed database UI.
       WORDPRESS_DB_USER: wp_user
       WORDPRESS_DB_PASSWORD: wp_pass
       WORDPRESS_DB_NAME: wp_wordpress
-
+    
+# We only need the 'wordpress' volume now.
 volumes:
-    database:
-    wordpress:
+  wordpress:
