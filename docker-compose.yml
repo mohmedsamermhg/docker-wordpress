@@ -45,7 +45,7 @@ services:
       # *** UPDATE THIS ***
       # Replace 'dokploy-db-host' with the actual internal hostname Dokploy assigns to your managed MariaDB service.
       # This hostname is usually the name you give the database service in the Dokploy UI.
-      WORDPRESS_DB_HOST: dokploy-db-host:3306 
+      WORDPRESS_DB_HOST: mysql://wp_user:wp_pass@dockerized-laravel-wpdb-fp0k9s:3306/wp_wordpress
       
       # These credentials MUST match the ones you set in the Dokploy managed database UI.
       WORDPRESS_DB_USER: wp_user
